@@ -1,11 +1,6 @@
 import { useState } from 'react'
-import ItineraryCard from './ItineraryCard.jsx'
-import LoadingSpinner from './LoadingSpinner.jsx'
-import ErrorDisplay from './ErrorDisplay.jsx'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
-
-function TripPlannerForm() {
+function TripPlannerForm({ onSubmit, isLoading, error }) {
   const [formData, setFormData] = useState({
     fromCity: '',
     destination: '',
@@ -21,10 +16,6 @@ function TripPlannerForm() {
     budget: '',
     familyType: ''
   })
-
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [itineraryData, setItineraryData] = useState(null)
 
   // Regex patterns for validation
   const cityPattern = /^[A-Za-z\s]{2,50}$/ // City name: 2-50 letters and spaces
@@ -105,7 +96,7 @@ function TripPlannerForm() {
     }))
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
 
     // Validate all fields
@@ -123,92 +114,9 @@ function TripPlannerForm() {
     setErrors(newErrors)
 
     if (!hasErrors) {
-      setLoading(true)
-      setError(null)
-      setItineraryData(null)
-
-      try {
-        // Create AbortController for timeout handling
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
-
-        const response = await fetch(`${API_BASE_URL}/api/plan-trip`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fromCity: formData.fromCity.trim(),
-            destination: formData.destination.trim(),
-            numberOfDays: formData.numberOfDays,
-            budget: formData.budget,
-            familyType: formData.familyType
-          }),
-          signal: controller.signal
-        })
-
-        clearTimeout(timeoutId)
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.message || `Server error: ${response.status}`)
-        }
-
-        const data = await response.json()
-        
-        if (data.success && data.data) {
-          setItineraryData(data.data)
-          // Scroll to results
-          setTimeout(() => {
-            document.getElementById('itinerary-results')?.scrollIntoView({ 
-              behavior: 'smooth',
-              block: 'start'
-            })
-          }, 100)
-        } else {
-          throw new Error('Invalid response from server')
-        }
-      } catch (err) {
-        if (err.name === 'AbortError') {
-          setError('Request timeout: The server took too long to respond. Please try again.')
-        } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-          setError('Network error: Unable to connect to the server. Please check your connection and ensure the backend is running.')
-        } else {
-          setError(err.message || 'An unexpected error occurred. Please try again.')
-        }
-        console.error('Error submitting form:', err)
-      } finally {
-        setLoading(false)
-      }
+      // Form is valid, call the onSubmit callback
+      onSubmit(formData)
     }
-  }
-
-  const handleRetry = () => {
-    setError(null)
-    // Create a synthetic event object for handleSubmit
-    const syntheticEvent = {
-      preventDefault: () => {}
-    }
-    handleSubmit(syntheticEvent)
-  }
-
-  const handleReset = () => {
-    setFormData({
-      fromCity: '',
-      destination: '',
-      numberOfDays: '',
-      budget: '',
-      familyType: ''
-    })
-    setErrors({
-      fromCity: '',
-      destination: '',
-      numberOfDays: '',
-      budget: '',
-      familyType: ''
-    })
-    setError(null)
-    setItineraryData(null)
   }
 
   const familyTypeOptions = [
@@ -219,13 +127,11 @@ function TripPlannerForm() {
   ]
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12">
-      {/* Form Section */}
-      {!itineraryData && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-xl p-6 sm:p-8 space-y-6 mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 text-center">
-            Plan Your Trip
-          </h2>
+    <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
+      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-xl p-6 sm:p-8 space-y-6">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 text-center">
+          Plan Your Trip
+        </h2>
 
         {/* From City */}
         <div>
@@ -360,144 +266,58 @@ function TripPlannerForm() {
           )}
         </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full py-3 px-6 rounded-lg font-semibold text-lg transform transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-              loading
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:scale-105 hover:shadow-xl'
-            }`}
-          >
-            {loading ? 'Planning Your Trip...' : 'Plan My Trip'}
-          </button>
-        </form>
-      )}
-
-      {/* Loading State */}
-      {loading && <LoadingSpinner />}
-
-      {/* Error Display */}
-      {error && !loading && (
-        <div className="mb-8">
-          <ErrorDisplay error={error} onRetry={handleRetry} />
-        </div>
-      )}
-
-      {/* Itinerary Results */}
-      {itineraryData && !loading && (
-        <div id="itinerary-results" className="mt-8">
-          {/* Summary Card */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-xl p-6 sm:p-8 mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-4">Your Trip Itinerary</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <span className="text-red-500 mr-2">⚠️</span>
               <div>
-                <p className="text-blue-100 text-sm font-medium">From</p>
-                <p className="text-xl font-bold">{itineraryData.fromCity}</p>
-              </div>
-              <div>
-                <p className="text-blue-100 text-sm font-medium">To</p>
-                <p className="text-xl font-bold">{itineraryData.destination}</p>
-              </div>
-              <div>
-                <p className="text-blue-100 text-sm font-medium">Total Budget</p>
-                <p className="text-xl font-bold">₨. {itineraryData.budget.toLocaleString()}</p>
-              </div>
-            </div>
-            <div className="mt-6 pt-6 border-t border-blue-400">
-              <div className="flex items-center justify-between">
-                <span className="text-blue-100 text-lg font-medium">Total Estimated Cost:</span>
-                <span className="text-3xl font-bold">
-                  ₨. {itineraryData.totalEstimatedCost.toLocaleString()}
-                </span>
+                <h4 className="text-red-800 font-semibold mb-1">Error</h4>
+                <p className="text-red-700 text-sm">{error}</p>
               </div>
             </div>
           </div>
+        )}
 
-          {/* Budget Breakdown */}
-          {itineraryData.budgetBreakdown && (
-            <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8 mb-8">
-              <h3 className="text-2xl font-bold text-gray-800 mb-6">Budget Breakdown</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                {itineraryData.budgetBreakdown.stay && (
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Accommodation</p>
-                    <p className="text-lg font-bold text-blue-600">₨. {itineraryData.budgetBreakdown.stay.toLocaleString()}</p>
-                  </div>
-                )}
-                {itineraryData.budgetBreakdown.transport && (
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Transport</p>
-                    <p className="text-lg font-bold text-green-600">₨. {itineraryData.budgetBreakdown.transport.toLocaleString()}</p>
-                  </div>
-                )}
-                {itineraryData.budgetBreakdown.food && (
-                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Food</p>
-                    <p className="text-lg font-bold text-yellow-600">₨. {itineraryData.budgetBreakdown.food.toLocaleString()}</p>
-                  </div>
-                )}
-                {itineraryData.budgetBreakdown.activities && (
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Activities</p>
-                    <p className="text-lg font-bold text-purple-600">₨. {itineraryData.budgetBreakdown.activities.toLocaleString()}</p>
-                  </div>
-                )}
-                {itineraryData.budgetBreakdown.perDayCost && (
-                  <div className="text-center p-4 bg-indigo-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Per Day Avg</p>
-                    <p className="text-lg font-bold text-indigo-600">₨. {itineraryData.budgetBreakdown.perDayCost.toLocaleString()}</p>
-                  </div>
-                )}
-              </div>
-            </div>
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`w-full py-3 px-6 rounded-lg font-semibold text-lg transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+            isLoading
+              ? 'bg-gray-400 text-white cursor-not-allowed'
+              : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 hover:shadow-xl'
+          }`}
+        >
+          {isLoading ? (
+            <span className="flex items-center justify-center">
+              <svg
+                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Generating Itinerary...
+            </span>
+          ) : (
+            'Plan My Trip'
           )}
-
-          {/* Itinerary Cards */}
-          <div className="space-y-6">
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">Day-wise Itinerary</h3>
-            {itineraryData.itinerary.map((dayPlan) => (
-              <ItineraryCard
-                key={dayPlan.day}
-                day={dayPlan.day}
-                title={dayPlan.title}
-                activities={dayPlan.activities}
-                travelIntensity={dayPlan.travelIntensity}
-                estimatedCost={dayPlan.estimatedCost}
-              />
-            ))}
-          </div>
-
-          {/* Tips Section */}
-          {itineraryData.tips && itineraryData.tips.length > 0 && (
-            <div className="mt-8 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg p-6 sm:p-8">
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                <span className="mr-2">💡</span>
-                Travel Tips
-              </h3>
-              <ul className="space-y-2">
-                {itineraryData.tips.map((tip, index) => (
-                  <li key={index} className="flex items-start text-gray-700">
-                    <span className="mr-2 text-yellow-600 mt-1">•</span>
-                    <span className="text-base sm:text-lg">{tip}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={handleReset}
-              className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200"
-            >
-              Plan Another Trip
-            </button>
-          </div>
-        </div>
-      )}
+        </button>
+      </form>
     </div>
   )
 }

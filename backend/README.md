@@ -1,118 +1,77 @@
-# Travel Planner Backend API
+# Travel Planner Backend
 
-Backend server for the AI Trip Planner application.
+Backend API server for the AI Trip Planner application using Google Gemini AI.
 
-## Setup
+## Setup Instructions
 
-1. Install dependencies:
-```bash
-npm install
-```
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-2. Create a `.env` file:
-```bash
-# Server Configuration
-PORT=5000
+2. **Set up environment variables:**
+   - Create a `.env` file in the backend folder
+   - Add your Gemini API key:
+     ```
+     GEMINI_API_KEY=your_gemini_api_key_here
+     PORT=3000
+     GEMINI_MODEL=gemini-1.5-flash
+     ```
+   - **Note:** `GEMINI_MODEL` is optional. Default is `gemini-1.5-flash`. 
+   - **FREE TIER MODELS ONLY:** Only `gemini-1.5-flash` and `gemini-1.5-pro` are supported (free tier quota models).
 
-# LLM Configuration
-LLM_PROVIDER=openai
-USE_LLM=true
-LLM_FALLBACK=true
+3. **Get Gemini API Key:**
+   - Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - Create a new API key
+   - Copy it to your `.env` file
 
-# OpenAI API Key (required if using OpenAI)
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-3.5-turbo
-```
-
-**LLM Setup Options:**
-
-- **With OpenAI (Recommended):**
-  - Get your API key from https://platform.openai.com/api-keys
-  - Set `OPENAI_API_KEY` in `.env`
-  - Set `LLM_PROVIDER=openai`
-  - Models: `gpt-3.5-turbo` (default), `gpt-4`, `gpt-4-turbo-preview`
-
-- **Without LLM (Mock Data):**
-  - Set `USE_LLM=false` in `.env`
-  - Or simply don't set any API keys
-  - The server will use mock itinerary generation
-
-- **With Fallback:**
-  - Set `LLM_FALLBACK=true` to use mock data if LLM fails
-  - Useful for development and testing
-
-3. Start the server:
-```bash
-# Development mode (with auto-reload)
-npm run dev
-
-# Production mode
-npm start
-```
+4. **Run the server:**
+   ```bash
+   npm start
+   ```
+   Or for development with auto-reload:
+   ```bash
+   npm run dev
+   ```
 
 ## API Endpoints
 
-### Health Check
-- **GET** `/health`
-- Returns server status
+### POST `/api/generate-itinerary`
+Generates a travel itinerary based on user input.
 
-### Plan Trip
-- **POST** `/api/plan-trip`
-- **Body:**
+**Request Body:**
 ```json
 {
   "fromCity": "New York",
   "destination": "Paris",
   "numberOfDays": "5",
-  "budget": "5000",
+  "budget": "10000",
   "familyType": "couple"
 }
 ```
 
-- **Response:**
+**Response:**
 ```json
 {
-  "success": true,
-  "data": {
-    "fromCity": "New York",
-    "destination": "Paris",
-    "numberOfDays": 5,
-    "budget": 5000,
-    "familyType": "couple",
-    "itinerary": [
-      {
-        "day": 1,
-        "activities": ["Activity 1", "Activity 2"],
-        "travelIntensity": "Medium",
-        "estimatedCost": 1200
-      }
-    ],
-    "totalEstimatedCost": 5000
-  }
+  "itinerary": [
+    {
+      "day": 1,
+      "title": "Arrival and Local Sightseeing",
+      "activities": ["Hotel check-in", "Visit local park"],
+      "travelIntensity": "Low",
+      "estimatedCost": 3000
+    }
+  ],
+  "budgetBreakdown": {
+    "stay": 8000,
+    "transport": 6000,
+    "food": 5000,
+    "activities": 4000,
+    "perDayCost": 3500
+  },
+  "tips": ["Start early to avoid crowds"]
 }
 ```
 
-## LLM Integration
-
-The backend now uses **real LLM APIs** to generate itineraries:
-
-- **OpenAI GPT** (fully implemented)
-- **Anthropic Claude** (placeholder - ready for implementation)
-- **Google Gemini** (placeholder - ready for implementation)
-
-The LLM generates:
-- Day-specific activities based on destination
-- Culturally relevant and location-specific recommendations
-- Appropriate activities for the selected family type
-- Realistic cost estimates distributed across days
-- Travel intensity calculations
-
-## Error Handling
-
-The API handles:
-- Missing required fields (400)
-- LLM API failures (503) - with optional fallback to mock data
-- Missing API keys (503)
-- Internal server errors (500)
-- Timeout scenarios (handled by client)
-- Network errors from LLM providers
+### GET `/api/health`
+Health check endpoint.
