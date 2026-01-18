@@ -1,4 +1,4 @@
-function ItineraryDisplay({ itineraryData, onReset }) {
+function ItineraryDisplay({ itineraryData, onReset, onSave, isSavedView = false }) {
   const { itinerary, budgetBreakdown, tips } = itineraryData
 
   const getIntensityColor = (intensity) => {
@@ -20,16 +20,28 @@ function ItineraryDisplay({ itineraryData, onReset }) {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <h2 className="text-3xl sm:text-4xl font-bold text-gray-800">
-          Your Travel Itinerary
+          {isSavedView ? 'Trip Details' : 'Your Travel Itinerary'}
         </h2>
-        <button
-          onClick={onReset}
-          className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
-        >
-          Plan Another Trip
-        </button>
+        <div className="flex gap-3">
+          {onSave && !isSavedView && (
+            <button
+              onClick={onSave}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm flex items-center"
+            >
+              <span>💾 Save Trip</span>
+            </button>
+          )}
+          {!isSavedView && (
+            <button
+              onClick={onReset}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
+            >
+              Plan Another Trip
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Day-wise Itinerary Cards */}

@@ -2,11 +2,18 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import mongoose from 'mongoose';
+import { Trip } from './models/Trip.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('Connected to MongoDB Atlas'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
 // Middleware
 app.use(cors());
@@ -185,6 +192,60 @@ app.post('/api/generate-itinerary', async (req, res) => {
       error: 'Internal Server Error',
       message: err.message || 'An unexpected error occurred.'
     });
+  }
+});
+
+// --- Trip Management Endpoints ---
+
+// Save a trip
+app.post('/api/trips', async (req, res) => {
+  try {
+    const tripData = req.body;
+    const newTrip = new Trip(tripData);
+    await newTrip.save();
+    res.status(201).json({ message: 'Trip saved successfully', trip: newTrip });
+  } catch (error) {
+    console.error('Error saving trip:', error);
+    res.status(500).json({ error: 'Failed to save trip', message: error.message });
+  }
+});
+
+// Get all trips
+app.get('/api/trips', async (req, res) => {
+  try {
+    const trips = await Trip.find().sort({ generatedAt: -1 }); // Newest first
+    res.json(trips);
+  } catch (error) {
+    console.error('Error fetching trips:', error);
+    res.status(500).json({ error: 'Failed to fetch trips', message: error.message });
+  }
+});
+
+// Get a specific trip
+app.get('/api/trips/:id', async (req, res) => {
+  try {
+    const trip = await Trip.findById(req.params.id);
+    if (!trip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+    res.json(trip);
+  } catch (error) {
+    console.error('Error fetching trip:', error);
+    res.status(500).json({ error: 'Failed to fetch trip', message: error.message });
+  }
+});
+
+// Delete a trip
+app.delete('/api/trips/:id', async (req, res) => {
+  try {
+    const deletedTrip = await Trip.findByIdAndDelete(req.params.id);
+    if (!deletedTrip) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+    res.json({ message: 'Trip deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting trip:', error);
+    res.status(500).json({ error: 'Failed to delete trip', message: error.message });
   }
 });
 
