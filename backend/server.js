@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 dotenv.config();
 
@@ -63,6 +64,7 @@ Example Output Format (JSON):
     "transport": 6000,
     "food": 5000,
     "activities": 4000,
+    "totalEstimatedCost": 23000,
     "perDayCost": 3500
   },
   "tips": [
@@ -74,6 +76,9 @@ Example Output Format (JSON):
 Return ONLY valid JSON in the exact same structure as shown above.
 Do not include explanations, markdown, or extra text.`;
 }
+
+// Initialize Gemini API
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'PLACEHOLDER');
 
 // API endpoint to generate itinerary
 app.post('/api/generate-itinerary', async (req, res) => {
@@ -89,227 +94,108 @@ app.post('/api/generate-itinerary', async (req, res) => {
     }
 
     // Check if API key is set
-    if (!process.env.GEMINI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'YOUR_API_KEY_HERE') {
       return res.status(500).json({ 
         error: 'Server configuration error',
-        message: 'Gemini API key is not configured. Please set GEMINI_API_KEY in your .env file.'
+        message: 'Gemini API key is not configured. Please set GEMINI_API_KEY in your backend/.env file.'
       });
     }
 
-    // Generate prompt
     const prompt = generatePrompt(fromCity, destination, numberOfDays, budget, familyType);
-
-    // Get API key
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-    // Get the model name (FREE TIER MODELS ONLY)
-    // Free tier models need version suffixes: gemini-1.5-flash-latest, gemini-1.5-pro-latest
-    const preferredModel = process.env.GEMINI_MODEL || 'gemini-1.5-flash-latest';
     
-    // Define allowed FREE TIER models with version suffixes
-    const freeTierModels = [
-      'gemini-1.5-flash-latest',
-      'gemini-1.5-flash-001',
-      'gemini-1.5-pro-latest',
-      'gemini-1.5-pro-001'
-    ];
-    
-    // Normalize model name - add -latest if no version suffix provided
-    let normalizedPreferredModel = preferredModel;
-    if (!preferredModel.includes('-latest') && !preferredModel.includes('-001')) {
-      // If user provided just "gemini-1.5-flash" or "gemini-1.5-pro", add -latest
-      if (preferredModel.includes('flash')) {
-        normalizedPreferredModel = 'gemini-1.5-flash-latest';
-      } else if (preferredModel.includes('pro')) {
-        normalizedPreferredModel = 'gemini-1.5-pro-latest';
-      } else {
-        normalizedPreferredModel = 'gemini-1.5-flash-latest';
+    // Choose model - use gemini-2.5-flash as it is the current standard (2026)
+    // Fallback to gemini-pro if needed for compatibility
+    const model = genAI.getGenerativeModel({ 
+      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.7,
       }
-    }
-    
-    // Validate preferred model is in free tier (check base name)
-    const baseModelName = normalizedPreferredModel.split('-').slice(0, 3).join('-'); // Get "gemini-1.5-flash" or "gemini-1.5-pro"
-    if (!baseModelName.includes('gemini-1.5-flash') && !baseModelName.includes('gemini-1.5-pro')) {
-      console.warn(`Warning: ${preferredModel} is not a free tier model. Using gemini-1.5-flash-latest instead.`);
-      normalizedPreferredModel = 'gemini-1.5-flash-latest';
-    }
-    
-    // List of FREE TIER models to try in order (fallback mechanism)
-    // Only using models available in free tier quota with proper version suffixes
-    const modelNamesToTry = [
-      normalizedPreferredModel,
-      'gemini-1.5-flash-latest',  // Free tier - fastest, recommended
-      'gemini-1.5-flash-001',     // Alternative version
-      'gemini-1.5-pro-latest',    // Free tier - more capable (with rate limits)
-      'gemini-1.5-pro-001'         // Alternative version
-    ];
+    });
 
-    let text;
-    let lastError;
-    let triedModels = [];
-
-    // Try each model until one works
-    for (const tryModelName of modelNamesToTry) {
-      // Skip if we already tried this model
-      if (triedModels.includes(tryModelName)) continue;
-      
-      triedModels.push(tryModelName);
-      
-      try {
-        console.log(`Attempting to use model: ${tryModelName}`);
-        
-        // Set timeout for the request (30 seconds)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-        // Make REST API call to Gemini
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${tryModelName}:generateContent?key=${GEMINI_API_KEY}`;
-        
-        const fetchResponse = await fetch(apiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: prompt }]
-              }
-            ],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 2048
+    const runGeneration = async (retryCount = 0) => {
+        try {
+            const result = await model.generateContent(prompt);
+            return await result.response;
+        } catch (err) {
+            // Check for 429 (Too Many Requests) or 503 (Service Unavailable)
+            if ((err.status === 429 || err.message.includes('429') || err.message.includes('quota')) && retryCount < 3) {
+                const delay = Math.pow(2, retryCount) * 1000 + (Math.random() * 1000); // Exponential backoff
+                console.log(`Hit rate limit. Retrying in ${Math.round(delay)}ms... (Attempt ${retryCount + 1}/3)`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return runGeneration(retryCount + 1);
             }
-          }),
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        // Check if request was successful
-        if (!fetchResponse.ok) {
-          const errorData = await fetchResponse.json().catch(() => ({}));
-          const errorMessage = errorData.error?.message || `HTTP ${fetchResponse.status}`;
-          
-          // If it's a model not found error, try next model
-          if (fetchResponse.status === 404 || errorMessage.includes('not found')) {
-            lastError = new Error(errorMessage);
-            console.log(`Model ${tryModelName} failed: ${errorMessage}`);
-            continue;
-          }
-          
-          // For other HTTP errors, throw immediately
-          throw new Error(errorMessage);
+            throw err;
         }
+    };
 
-        // Parse response
-        const data = await fetchResponse.json();
-        
-        // Extract text from response
-        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-          text = data.candidates[0].content.parts[0].text;
-        } else {
-          throw new Error('Invalid response structure from Gemini API');
-        }
-        
-        // If we get here, the model worked!
-        console.log(`Successfully used model: ${tryModelName}`);
-        break;
-      } catch (err) {
-        // Handle abort (timeout)
-        if (err.name === 'AbortError') {
-          throw new Error('Request timeout');
-        }
-        
-        lastError = err;
-        console.log(`Model ${tryModelName} failed: ${err.message}`);
-        
-        // If it's a model not found error, try next model
-        // Check for various "not found" error patterns from Gemini API
-        const isModelNotFound = 
-          err.message?.includes('not found') || 
-          err.message?.includes('404') ||
-          err.message?.includes('is not found for API version') ||
-          err.message?.includes('not supported for generateContent');
-        
-        if (isModelNotFound) {
-          continue;
-        }
-        // For other errors (timeout, API key, etc.), throw immediately
-        throw err;
-      }
-    }
-
-    // If we exhausted all models, throw error
-    if (!text) {
-      throw new Error(`No available Gemini model found. Tried: ${triedModels.join(', ')}. Last error: ${lastError?.message || 'Unknown error'}`);
-    }
-
-    // Try to extract JSON from the response
-    let jsonData;
     try {
-      // Remove markdown code blocks if present
-      const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      jsonData = JSON.parse(cleanedText);
-    } catch (parseError) {
-      console.error('JSON Parse Error:', parseError);
-      console.error('Response text:', text);
-      return res.status(500).json({ 
-        error: 'Invalid response format',
-        message: 'The AI response could not be parsed. Please try again.',
-        rawResponse: text
-      });
+      const response = await runGeneration();
+      const text = response.text();
+      
+      console.log('Gemini API Response received');
+
+      let jsonData;
+      try {
+        // Clean up markdown code blocks if the model adds them despite instructions
+        const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        jsonData = JSON.parse(cleanedText);
+      } catch (e) {
+        console.error('JSON Parse Error:', e);
+        console.error('Raw Text:', text);
+        return res.status(500).json({
+          error: 'Parsing Error',
+          message: 'Failed to parse the itinerary from AI response.',
+          raw: text
+        });
+      }
+
+      res.json(jsonData);
+
+    } catch (apiError) {
+      console.error('Gemini API Error:', apiError);
+      
+      if (apiError.message?.includes('404')) {
+         return res.status(500).json({
+          error: 'Model Not Found',
+          message: `The configured Gemini model (${process.env.GEMINI_MODEL}) was not found using your API key. Try changing GEMINI_MODEL in .env to "gemini-2.5-flash", "gemini-2.0-flash-lite", or "gemini-pro".`
+        });
+      }
+      
+      if (apiError.message?.includes('429') || apiError.message?.includes('usage') || apiError.message?.includes('quota')) {
+         return res.status(429).json({
+          error: 'Rate Limit Exceeded',
+          message: 'The AI service is busy or you have ran out of free quota. Please try again in a few moments.'
+        });
+      }
+      
+      if (apiError.message?.includes('API key') || apiError.message?.includes('403')) {
+        return res.status(401).json({
+          error: 'Authorization Error',
+          message: 'Invalid Gemini API Key. Please check your .env file.'
+        });
+      }
+
+      throw apiError;
     }
 
-    // Validate the response structure
-    if (!jsonData.itinerary || !Array.isArray(jsonData.itinerary)) {
-      return res.status(500).json({ 
-        error: 'Invalid response structure',
-        message: 'The AI response does not contain a valid itinerary. Please try again.'
-      });
-    }
-
-    res.json(jsonData);
-
-  } catch (error) {
-    console.error('Error generating itinerary:', error);
-    
-    if (error.message === 'Request timeout') {
-      return res.status(504).json({ 
-        error: 'Request timeout',
-        message: 'The request took too long to process. Please try again.'
-      });
-    }
-
-    if (error.message?.includes('API_KEY') || error.message?.includes('API key')) {
-      return res.status(401).json({ 
-        error: 'Invalid API key',
-        message: 'The Gemini API key is invalid. Please check your configuration.'
-      });
-    }
-
-    // Handle model not found errors
-    if (error.message?.includes('not found') || error.message?.includes('404') || error.message?.includes('No available Gemini model')) {
-      return res.status(500).json({ 
-        error: 'Model not found',
-        message: 'The specified Gemini model is not available. Please use a free tier model with version suffix: GEMINI_MODEL=gemini-1.5-flash-latest or gemini-1.5-pro-latest in your .env file.'
-      });
-    }
-
+  } catch (err) {
+    console.error('Server Error:', err);
     res.status(500).json({ 
-      error: 'Internal server error',
-      message: error.message || 'An unexpected error occurred while generating the itinerary. Please try again.'
+      error: 'Internal Server Error',
+      message: err.message || 'An unexpected error occurred.'
     });
   }
 });
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Travel Planner API is running' });
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    apiKeyConfigured: !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'YOUR_API_KEY_HERE' 
+  });
 });
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/api/health`);
 });
