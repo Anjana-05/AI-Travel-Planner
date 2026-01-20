@@ -7,7 +7,6 @@ import tripRoutes from './routes/tripRoutes.js';
 
 dotenv.config();
 
-// Connect to MongoDB
 connectDB();
 
 const app = express();
