@@ -19,8 +19,8 @@ function ItineraryDisplay({ itineraryData, onReset, onSave, isSavedView = false 
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12">
-      <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12 space-y-12">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <h2 className="text-3xl sm:text-4xl font-bold text-gray-800">
           {isSavedView ? 'Trip Details' : 'Your Travel Itinerary'}
         </h2>
@@ -45,7 +45,7 @@ function ItineraryDisplay({ itineraryData, onReset, onSave, isSavedView = false 
       </div>
 
       {/* Day-wise Itinerary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {itinerary.map((day) => (
           <div
             key={day.day}
@@ -68,7 +68,7 @@ function ItineraryDisplay({ itineraryData, onReset, onSave, isSavedView = false 
 
             <div className="mb-4">
               <h5 className="text-sm font-medium text-gray-600 mb-2">Activities:</h5>
-              <ul className="space-y-2">
+              <ul className="space-y-3">
                 {day.activities && day.activities.length > 0 ? (
                   day.activities.map((activity, index) => (
                     <li key={index} className="flex items-start text-sm text-gray-700">
@@ -96,9 +96,9 @@ function ItineraryDisplay({ itineraryData, onReset, onSave, isSavedView = false 
 
       {/* Budget Breakdown */}
       {budgetBreakdown && (
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <h3 className="text-2xl font-bold text-gray-800 mb-4">Budget Breakdown</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4">
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h3 className="text-2xl font-bold text-gray-800 mb-6">Budget Breakdown</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-6">
             {budgetBreakdown.totalEstimatedCost && (
               <div className="text-center p-4 bg-teal-50 rounded-lg col-span-2 sm:col-span-1 border-2 border-teal-100">
                 <p className="text-sm text-gray-600 mb-1 font-semibold">Total Estimated</p>
@@ -136,14 +136,6 @@ function ItineraryDisplay({ itineraryData, onReset, onSave, isSavedView = false 
                 <p className="text-sm text-gray-600 mb-1">Activities</p>
                 <p className="text-lg font-bold text-purple-600">
                   ₨. {formatCurrency(budgetBreakdown.activities)}
-                </p>
-              </div>
-            )}
-            {budgetBreakdown.perDayCost && (
-              <div className="text-center p-4 bg-indigo-50 rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">Per Day</p>
-                <p className="text-lg font-bold text-indigo-600">
-                  ₨. {formatCurrency(budgetBreakdown.perDayCost)}
                 </p>
               </div>
             )}

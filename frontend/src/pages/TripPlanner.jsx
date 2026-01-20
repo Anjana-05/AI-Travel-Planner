@@ -41,16 +41,27 @@ function TripPlanner() {
       const data = await response.json()
       setItineraryData(data)
     } catch (err) {
-      console.error('Error generating itinerary:', err)
+      // Log full technical details to console for debugging
+      console.error('Detailed Error:', err)
       
-      // Handle different error types
-      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-        setError('Unable to connect to the server. Please make sure the backend server is running on http://localhost:3000')
-      } else if (err.message.includes('timeout')) {
-        setError('The request took too long to process. Please try again.')
-      } else {
-        setError(err.message || 'An unexpected error occurred. Please try again.')
+      let userFriendlyMessage = 'Something went wrong while planning your trip. Please try again.'
+
+      const errorMessage = err.message || '';
+
+      // Map technical errors to polite user messages
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+        userFriendlyMessage = 'We are unable to connect to the server at the moment. Please check your connection.'
+      } else if (errorMessage.includes('timeout')) {
+         userFriendlyMessage = 'The trip planning is taking a bit longer than usual. Please try again.';
+      } else if (errorMessage.includes('503') || errorMessage.includes('overloaded')) {
+        userFriendlyMessage = 'Our travel AI is currently very popular and experiencing high traffic. Please wait a minute and try again.'
+      } else if (errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('busy')) {
+        userFriendlyMessage = 'We are processing many requests right now. Please try again in a moment.'
+      } else if (errorMessage.includes('Model Not Found') || errorMessage.includes('API key')) {
+         userFriendlyMessage = 'We are experiencing a temporary configuration issue. Please try again later.'
       }
+
+      setError(userFriendlyMessage)
     } finally {
       setIsLoading(false)
     }

@@ -5,7 +5,7 @@ function Header() {
     <header className="bg-white shadow-md sticky top-0 z-10 opacity-95 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-4 sm:py-6 relative">
         <div className="flex flex-col md:flex-row items-center justify-between">
-          <Link to="/" className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-80 transition-opacity">
+          <Link to="/" className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-600 hover:opacity-80 transition-opacity">
              ✈️ AI Trip Planner
           </Link>
           

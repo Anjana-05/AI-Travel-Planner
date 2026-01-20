@@ -235,64 +235,46 @@ function TripPlannerForm({ onSubmit, isLoading, error }) {
 
         {/* Family Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
+          <label htmlFor="familyType" className="block text-sm font-medium text-gray-700 mb-2">
             Family Type <span className="text-red-500">*</span>
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <select
+            id="familyType"
+            name="familyType"
+            value={formData.familyType}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-all bg-white ${
+              errors.familyType
+                ? 'border-red-500 focus:ring-red-500'
+                : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+            }`}
+          >
+            <option value="" disabled>Select Option</option>
             {familyTypeOptions.map((option) => (
-              <label
-                key={option.value}
-                className={`flex items-center p-4 border rounded-lg cursor-pointer transition-all ${
-                  formData.familyType === option.value
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 hover:border-blue-300'
-                } ${errors.familyType ? 'border-red-500' : ''}`}
-              >
-                <input
-                  type="radio"
-                  name="familyType"
-                  value={option.value}
-                  checked={formData.familyType === option.value}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="ml-3 text-gray-700 font-medium">{option.label}</span>
-              </label>
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
             ))}
-          </div>
+          </select>
           {errors.familyType && (
             <p className="mt-1 text-sm text-red-500">{errors.familyType}</p>
           )}
         </div>
 
-        {/* Error Message */}
+        {/* Status Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-start">
-              <span className="text-red-500 mr-2">⚠️</span>
-              <div>
-                <h4 className="text-red-800 font-semibold mb-1">Error</h4>
-                <p className="text-red-700 text-sm">{error}</p>
-              </div>
-            </div>
+          <div className="text-center py-3 px-4 rounded-lg bg-gray-50 border border-gray-100">
+             <p className="text-gray-600 text-sm">{error}</p>
           </div>
         )}
 
         {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className={`w-full py-3 px-6 rounded-lg font-semibold text-lg transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-            isLoading
-              ? 'bg-gray-400 text-white cursor-not-allowed'
-              : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 hover:shadow-xl'
-          }`}
-        >
-          {isLoading ? (
-            <span className="flex items-center justify-center">
+        {isLoading ? (
+          <div className="w-full py-4 px-6 rounded-lg bg-blue-50 border border-blue-200 text-center shadow-inner">
+            <div className="flex flex-col items-center justify-center space-y-2">
               <svg
-                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                className="animate-spin h-8 w-8 text-blue-600 mb-2"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -311,12 +293,18 @@ function TripPlannerForm({ onSubmit, isLoading, error }) {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 ></path>
               </svg>
-              Generating Itinerary...
-            </span>
-          ) : (
-            'Plan My Trip'
-          )}
-        </button>
+              <h3 className="text-lg font-bold text-blue-800">We are planning your trip...</h3>
+              <p className="text-blue-600">This may take a few seconds.</p>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="submit"
+            className="w-full py-3 px-6 rounded-lg font-semibold text-lg transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 hover:shadow-xl"
+          >
+            Plan My Trip
+          </button>
+        )}
       </form>
     </div>
   )
