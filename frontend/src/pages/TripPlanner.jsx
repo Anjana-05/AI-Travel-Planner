@@ -6,6 +6,8 @@ import ItineraryDisplay from '../components/ItineraryDisplay.jsx'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
+console.log('API URL:', API_BASE_URL); // Debugging
+
 function TripPlanner() {
   const [itineraryData, setItineraryData] = useState(null)
   const [formData, setFormData] = useState(null)

@@ -1,5 +1,5 @@
 export const generatePrompt = (fromCity, destination, days, budget, familyType) => {
-  return `The user is planning for a trip and needs a budget-friendly itinerary that fits for their family type. You are a professional travle planner AI experienced in planning trips. Generate a ${familyType} trip day-wise travel itinerary from ${fromCity} to ${destination} for ${days} within a total budget of ${budget}. 
+  return `The user is planning for a trip and needs a budget-friendly itinerary that fits for their family type. You are a professional travel planner AI experienced in planning trips. Generate a ${familyType} trip day-wise travel itinerary from ${fromCity} to ${destination} for ${days} within a total budget of ${budget}. 
 
 
 Rules:
