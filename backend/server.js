@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://tripgen-ai.vercel.app/my-trips"
+    "https://tripgen-ai.vercel.app"
   ]
 }));
 app.use(express.json());

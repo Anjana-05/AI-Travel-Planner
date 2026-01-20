@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import Header from '../components/Header.jsx'
 import ItineraryDisplay from '../components/ItineraryDisplay.jsx'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 function TripDetails() {
   const { id } = useParams()
