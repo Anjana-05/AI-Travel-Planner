@@ -12,7 +12,7 @@ A smart travel itinerary generator powered by **Google Gemini AI**. This applica
   - Origin & Destination
   - Duration (Number of Days)
   - Budget
-  - Family/group type (Solo, Couple, Family, Friends)
+  - Family/group type (Solo, Couple, Family with kids, Family with elders)
 - **Budget Breakdown**: Detailed cost estimates for stay, transport, food, and activities.
 - **Trip Management**: Save your favorite itineraries to view later (Database integrated).
 - **Responsive Design**: Modern and clean UI built with Tailwind CSS.
@@ -110,9 +110,6 @@ npm run dev
 | **POST** | `/api/trips` | Save a new trip |
 | **GET** | `/api/trips/:id` | Get details of a specific trip |
 | **DELETE** | `/api/trips/:id` | Delete a saved trip |
-
-## 📸 Screenshots
-*(Add your application screenshots here)*
 
 ## 🤝 Contributing
 
