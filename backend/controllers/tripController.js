@@ -4,6 +4,20 @@ import { Trip } from '../models/Trip.js';
 export const createTrip = async (req, res) => {
   try {
     const tripData = req.body;
+
+    // Check if trip already exists with same criteria
+    const existingTrip = await Trip.findOne({
+      destination: tripData.destination,
+      fromCity: tripData.fromCity,
+      numberOfDays: tripData.numberOfDays,
+      budget: tripData.budget,
+      familyType: tripData.familyType
+    });
+
+    if (existingTrip) {
+      return res.status(200).json({ message: 'Trip already saved', trip: existingTrip });
+    }
+
     const newTrip = new Trip(tripData);
     await newTrip.save();
     res.status(201).json({ message: 'Trip saved successfully', trip: newTrip });
