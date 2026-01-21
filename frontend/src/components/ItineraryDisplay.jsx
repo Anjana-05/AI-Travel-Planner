@@ -98,7 +98,7 @@ function ItineraryDisplay({ itineraryData, onReset, onSave, isSavedView = false 
       {budgetBreakdown && (
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h3 className="text-2xl font-bold text-gray-800 mb-6">Budget Breakdown</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
             {budgetBreakdown.totalEstimatedCost && (
               <div className="text-center p-4 bg-teal-50 rounded-lg col-span-2 sm:col-span-1 border-2 border-teal-100">
                 <p className="text-sm text-gray-600 mb-1 font-semibold">Total Estimated</p>
